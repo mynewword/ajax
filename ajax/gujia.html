@@ -1,0 +1,147 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<style type="text/css">
+*{
+  margin: 0;
+  padding: 0;
+}
+body{
+   font-size: 62.5%;
+   font-family: "微软雅黑";
+}
+#continer{
+   position: absolute;
+   margin: auto;
+   top: 0;
+   bottom: 0;
+   left: 0;
+   right: 0;
+   height: 200px;
+   width: 300px;
+   background: linear-gradient(to bottom,#D87093,#FFE4E1); 
+   border: 1px solid #C0C0C0;
+   border-radius: 10px;
+   padding: 1em;
+}
+h2{
+   font-size: 2em;
+   font-weight: normal;
+   text-align: center;
+   margin-bottom: 0.5em;
+}
+p{
+   font-size: 1.5em;
+   line-height: 1.5em;
+}
+</style>
+</head>
+<body>
+  <div id="continer">
+    <h2>*ST橡塑(600346)股票行情</h2>
+    <p id="kaipan">开盘价格：<span id="kaipanprice"></span></p>
+    <p id="now">当前价格：<span id="nowprice"></span></p>
+    <p id="zhangdie">涨跌辐度：<span id="index"></span></p>
+    
+  </div>
+  <script>
+     function $(id) {
+         return document.getElementById(id.substring(1));
+     }
+     //在页面加载完成时产生一个随机的开盘价
+     function randomPrice() {
+         //产生一个随机数
+         var num =  Math.random()*20;
+         
+         $('#kaipanprice').innerHTML = num.toFixed(2);//toFixed() 方法可把 Number 四舍五入为指定小数位数的数字。
+     }
+     //封装一个创建XMLHttpRequest对象的函数，可以重复使用
+     function XMLHttp() {
+        var xmlhttp;
+        if(window.XMLHttpRequest) {
+            xmlhttp = new window.XMLHttpRequest();
+        } else {
+            //用来兼容以前的IE浏览器
+            xmlhttp = new ActiveXObject('Microsoft.XMLHTTP');
+        }
+        return xmlhttp;
+     }
+     
+     //用一个全局变量保存创建的XMLHttpRequest，
+     //因为后面这个对象还要在回调函数里调用，不然的话无法在回调函数里调用
+     var xmlhttp;
+     
+     //下面这个函数用来打开一个请求和发送请求
+     function priceChange() {
+         xmlhttp = XMLHttp();
+
+         if(xmlhttp) {
+             //localhost就是wamp安装目录中的www文件夹，我在www文件夹下又创建了my文件夹，在my文件夹中又创建了ajax文件夹
+             var url = 'http://localhost/ajax/price.php';
+             var data = 'item=nowprice';
+             //绑定onreadystatechange事件
+             //JavaScript高级程序设计第三版上说在调用open()方法之前指定onreadystatechange事件能保证跨浏览器兼容性
+             xmlhttp.onreadystatechange = handle;
+             
+             //用post方式打开请求，true表示异步机制
+             xmlhttp.open('post',url,true);
+             
+             //用post方式发送请求必须添加下面这一句代码，否则报错
+             xmlhttp.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
+             
+             //post方式的数据要在send()方法中发送，get方式向send()方法中传入null，数据在url中发送
+             xmlhttp.send(data);
+           
+         }
+         
+     }
+     
+     //指定回调函数
+     function handle() {
+            //xmlhttp.readyState=4表示服务器响应完成，并且客户端已接受到全部响应数据，可以在客户端使用了
+            if(xmlhttp.readyState == 4) {
+            
+                //xmlhttp.status=200表示响应成功，等于304表示响应数据未发生修改可以使用浏览器缓存中的数据
+                //if语句的判断条件是照抄JavaScript高级程序设计第三版上的
+                if((xmlhttp.status >= 200 && xmlhttp.status < 300) || xmlhttp.status == 304) {
+                     //我这里返回的是JSON格式的字符串，用JSON对象的parse()方法把字符串转换成一个JavaScript对象
+                     var obj = JSON.parse(xmlhttp.responseText);
+                     
+                     //获取开盘价格
+                     var kaipanjia = parseFloat($('#kaipanprice').innerHTML);
+                     
+                     //写入当前价格
+                     $('#nowprice').innerHTML = obj.price;
+                     
+                     //计算涨跌辐度
+                     var percent = (100*(obj.price - kaipanjia)/kaipanjia).toFixed(2);
+                     
+                     //不同的涨跌辐度使用不同的字体颜色
+                     if(percent < 0){
+                        
+                        $('#index').style.color = "green";
+                     }
+                     if(percent > 0){
+                        
+                        $('#index').style.color = "red";
+                     }                     
+                     if(percent == 0){
+                        
+                        $('#index').style.color = "#FFFFFF";
+                     }
+                     //写入涨跌辐度                     
+                     $('#index').innerHTML = percent + '%';
+                }
+            }     
+     
+     }
+  window.onload = function() {
+     randomPrice();
+     priceChange();        //两秒钟更新一次当前价格
+     updateprice = setInterval(priceChange,2000);
+  };
+     
+  </script>
+</body>
+</html>
